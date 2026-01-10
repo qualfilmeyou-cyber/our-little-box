@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nossa Caixinha de Ideias ❤️</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Nossa Caixinha ❤️</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --primary: #ff4d6d;
@@ -14,172 +20,175 @@
             --pago: #457b9d;
         }
 
-        /* Ajuste para preencher a tela inteira em dispositivos móveis */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background-color: var(--bg);
             color: var(--text);
-            margin: 0;
-            padding: 15px;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         .container {
             width: 100%;
-            max-width: 600px; /* No PC ele não fica gigante, no celular ocupa tudo */
+            max-width: 500px;
             background: white;
-            padding: 20px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding-bottom: 40px;
         }
 
-        h1 { font-size: 1.8rem; text-align: center; color: var(--primary); margin-bottom: 20px; }
+        header {
+            padding: 25px 20px 10px 20px;
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        h1 { font-size: 1.6rem; text-align: center; color: var(--primary); margin-bottom: 20px; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
         .tab-btn {
-            flex: 1; padding: 15px 10px; border: none; background: var(--secondary);
-            cursor: pointer; border-radius: 12px; font-weight: bold; font-size: 0.9rem;
+            flex: 1; padding: 14px; border: none; background: var(--secondary);
+            cursor: pointer; border-radius: 15px; font-weight: bold; font-size: 0.9rem;
+            transition: 0.3s;
         }
-        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn.active { background: var(--primary); color: white; transform: scale(1.05); }
 
-        .input-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
-        input, select, textarea { 
-            padding: 14px; border: 2px solid #ffe5ec; border-radius: 12px; 
-            font-size: 1rem; width: 100%; outline: none;
+        .content-padding { padding: 0 20px; }
+
+        .input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        input, select { 
+            padding: 15px; border: 2px solid #ffe5ec; border-radius: 15px; 
+            font-size: 1rem; outline: none; width: 100%; transition: 0.2s;
         }
-        input:focus { border-color: var(--secondary); }
+        input:focus { border-color: var(--primary); }
 
         .add-btn { 
             background-color: var(--success); color: white; border: none; 
-            padding: 15px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 1rem;
+            padding: 15px; border-radius: 15px; cursor: pointer; font-weight: bold; font-size: 1rem;
         }
 
-        .roulette-section {
-            text-align: center; padding: 25px 15px; border: 2px dashed var(--primary);
-            border-radius: 15px; margin-bottom: 25px; background: #fffafb;
+        .roulette-box {
+            text-align: center; padding: 20px; border: 2px dashed var(--primary);
+            border-radius: 20px; background: #fffafb; margin-bottom: 25px;
         }
 
-        #result-display { 
-            font-size: 1.1rem; font-weight: bold; margin: 15px 0; color: var(--primary); 
-            min-height: 60px; display: flex; align-items: center; justify-content: center;
-        }
+        #result-display { font-size: 1.1rem; font-weight: bold; color: var(--primary); min-height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
         
-        .btn-group-draw { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn-draw-group { display: flex; gap: 10px; }
         .draw-btn { 
-            background: var(--primary); color: white; border: none; padding: 12px 20px; 
-            border-radius: 25px; cursor: pointer; font-weight: bold; flex: 1; min-width: 140px;
+            background: var(--primary); color: white; border: none; padding: 12px; 
+            border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 0.85rem; flex: 1;
         }
-        .draw-btn.gratis { background: var(--success); }
-        .draw-btn.pago { background: var(--pago); }
 
-        .section-title { margin-top: 30px; border-bottom: 2px solid var(--secondary); padding-bottom: 5px; font-size: 1.1rem; }
+        .section-title { font-size: 0.9rem; color: var(--primary); margin: 25px 0 10px 0; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; }
         
         .list-item {
-            background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 12px;
+            background: #fff; padding: 15px; border-radius: 18px; margin-bottom: 12px;
             border: 1px solid #f0f0f0; border-left: 6px solid var(--secondary);
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         }
         .list-item.done { border-left-color: var(--success); background: #f8fff9; }
         
-        .item-header { display: flex; justify-content: space-between; align-items: center; }
-        .controls { display: flex; gap: 12px; }
-        .btn-action { 
-            background: white; border: 1px solid #eee; border-radius: 10px; 
-            cursor: pointer; padding: 8px; font-size: 1.1rem;
-        }
-        
-        .review-box { 
-            margin-top: 12px; padding: 12px; background: #fff; border-radius: 10px; 
-            font-size: 0.95rem; border: 1px solid #eee; line-height: 1.4;
-        }
-        .rating { color: #f4a261; font-weight: bold; display: block; margin-bottom: 5px; }
+        .item-info { flex: 1; }
+        .item-name { font-size: 1.05rem; font-weight: 600; }
+        .review-text { font-size: 0.85rem; color: #777; margin-top: 5px; background: #eee; padding: 8px; border-radius: 10px; display: inline-block; }
 
-        /* Modal Responsivo */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); display: none; z-index: 100; backdrop-filter: blur(3px);
-        }
-        .modal {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 25px; border-radius: 20px; width: 92%; max-width: 400px; z-index: 101;
-        }
+        .item-actions { display: flex; gap: 10px; }
+        .btn-circle { width: 40px; height: 40px; border-radius: 50%; border: none; background: #f0f0f0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .btn-check { color: var(--success); }
+        .btn-del { color: #cc0000; }
 
-        /* Ajustes específicos para telas muito pequenas */
-        @media (max-width: 400px) {
-            h1 { font-size: 1.5rem; }
-            .draw-btn { width: 100%; flex: none; }
-        }
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 25px; width: 90%; max-width: 380px; }
     </style>
 </head>
 <body>
 
-    <h1>❤️ Nossa Caixinha</h1>
-
     <div class="container">
-        <div class="tabs">
-            <button class="tab-btn active" id="btn-filmes" onclick="switchTab('filmes')">🎬 Filmes</button>
-            <button class="tab-btn" id="btn-lugares" onclick="switchTab('lugares')">📍 Lugares</button>
-        </div>
+        <header>
+            <h1>❤️ Nossa Caixinha</h1>
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-filmes" onclick="switchTab('filmes')">🎬 Filmes</button>
+                <button class="tab-btn" id="tab-lugares" onclick="switchTab('lugares')">📍 Lugares</button>
+            </div>
+        </header>
 
-        <div id="form-content" class="input-group">
-            <input type="text" id="main-input" placeholder="Nome do filme/série...">
-            <select id="select-tipo" style="display:none;">
-                <option value="Grátis">🍃 Sugestão Grátis</option>
-                <option value="Pago">💰 Sugestão Paga</option>
-            </select>
-            <button class="add-btn" onclick="addItem()">✨ Adicionar à Lista</button>
-        </div>
+        <div class="content-padding">
+            <section class="top-section">
+                <div class="input-group">
+                    <input type="text" id="main-input" placeholder="O que vamos fazer?">
+                    <select id="select-tipo" style="display:none;">
+                        <option value="Grátis">🍃 Sugestão Grátis</option>
+                        <option value="Pago">💰 Sugestão Paga</option>
+                    </select>
+                    <button class="add-btn" onclick="addItem()">✨ Adicionar à Lista</button>
+                </div>
 
-        <div class="roulette-section">
-            <div id="result-display">O que faremos hoje? 🤔</div>
-            <div class="btn-group-draw" id="draw-actions"></div>
-        </div>
+                <div class="roulette-box">
+                    <div id="result-display">Qual será a sorte de hoje? 🤔</div>
+                    <div class="btn-draw-group" id="draw-actions"></div>
+                </div>
+            </section>
 
-        <div id="lista-render"></div>
+            <div id="lista-render"></div>
+        </div>
     </div>
 
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal">
-            <h3 style="margin-top:0">Como foi a experiência?</h3>
-            <label style="font-size: 0.9rem; font-weight: bold;">Sua nota:</label>
-            <select id="review-rating" style="margin: 8px 0 15px 0;">
+            <h3 style="margin-bottom: 15px;">Como foi a experiência?</h3>
+            <select id="review-rating" style="margin-bottom: 15px;">
                 <option value="⭐⭐⭐⭐⭐">⭐⭐⭐⭐⭐ (Incrível!)</option>
                 <option value="⭐⭐⭐⭐">⭐⭐⭐⭐ (Muito bom)</option>
                 <option value="⭐⭐⭐">⭐⭐⭐ (Legal)</option>
                 <option value="⭐⭐">⭐⭐ (Mais ou menos)</option>
-                <option value="⭐">⭐ (Não recomendo)</option>
+                <option value="⭐">⭐ (Não gostei)</option>
             </select>
-            <label style="font-size: 0.9rem; font-weight: bold;">O que acharam?</label>
-            <textarea id="review-text" placeholder="Escreva um breve comentário..." rows="4" style="margin-top:8px;"></textarea>
-            <button class="add-btn" style="width:100%; margin-top:15px;" onclick="saveReview()">✅ Salvar Experiência</button>
-            <button style="width:100%; margin-top:10px; background:none; border:none; color: gray; cursor:pointer; font-weight:bold;" onclick="closeModal()">Cancelar</button>
+            <textarea id="review-text" placeholder="O que acharam?" rows="3" style="padding: 15px; border: 1px solid #ddd; border-radius: 15px; width: 100%; margin-bottom: 15px; font-family: inherit;"></textarea>
+            <button class="add-btn" style="width:100%;" onclick="saveReview()">✅ Salvar Memória</button>
+            <button style="width:100%; margin-top:15px; border:none; background:none; color:gray; font-weight:bold;" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOOMPRP3xkf6s7-QwPTmDVn6-FbQKIrz0",
+            authDomain: "nossa-caixinha-43deb.firebaseapp.com",
+            projectId: "nossa-caixinha-43deb",
+            databaseURL: "https://nossa-caixinha-43deb-default-rtdb.firebaseio.com/",
+            storageBucket: "nossa-caixinha-43deb.firebasestorage.app",
+            messagingSenderId: "336657573926",
+            appId: "1:336657573926:web:e8a5014491e9bd8f529ee7"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         let currentTab = 'filmes';
-        let database = JSON.parse(localStorage.getItem('nossaCaixinhaV3')) || { filmes: [], lugares: [] };
+        let database = { filmes: [], lugares: [] };
         let itemBeingReviewed = null;
+
+        function listenToData() {
+            db.ref('caixinha').on('value', (snapshot) => {
+                database = snapshot.val() || { filmes: [], lugares: [] };
+                renderList();
+            });
+        }
 
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('btn-' + tab).classList.add('active');
-            
-            const selectTipo = document.getElementById('select-tipo');
-            const mainInput = document.getElementById('main-input');
-            
-            if (tab === 'lugares') {
-                selectTipo.style.display = 'block';
-                mainInput.placeholder = 'Nome do lugar...';
-            } else {
-                selectTipo.style.display = 'none';
-                mainInput.placeholder = 'Nome do filme/série...';
-            }
-            
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('select-tipo').style.display = tab === 'lugares' ? 'block' : 'none';
+            document.getElementById('main-input').placeholder = tab === 'filmes' ? 'Nome do filme/série...' : 'Nome do lugar...';
             updateDrawButtons();
             renderList();
         }
@@ -190,8 +199,8 @@
                 container.innerHTML = `<button class="draw-btn" onclick="drawItem('todos')">🎰 Sortear Filme</button>`;
             } else {
                 container.innerHTML = `
-                    <button class="draw-btn gratis" onclick="drawItem('Grátis')">🍃 Sortear Grátis</button>
-                    <button class="draw-btn pago" onclick="drawItem('Pago')">💰 Sortear Pago</button>
+                    <button class="draw-btn" style="background:var(--success)" onclick="drawItem('Grátis')">🍃 Grátis</button>
+                    <button class="draw-btn" style="background:var(--pago)" onclick="drawItem('Pago')">💰 Pago</button>
                 `;
             }
         }
@@ -199,54 +208,45 @@
         function addItem() {
             const input = document.getElementById('main-input');
             if (!input.value.trim()) return;
-
-            const newItem = {
+            
+            if (!database[currentTab]) database[currentTab] = [];
+            
+            database[currentTab].push({
                 id: Date.now(),
                 name: input.value,
                 subType: currentTab === 'lugares' ? document.getElementById('select-tipo').value : 'Filme',
-                done: false,
-                rating: '',
-                note: ''
-            };
-
-            database[currentTab].push(newItem);
-            save();
+                done: false, rating: '', note: ''
+            });
+            
+            db.ref('caixinha').set(database);
             input.value = '';
-            renderList();
         }
 
         function renderList() {
             const container = document.getElementById('lista-render');
             container.innerHTML = '';
-
             if (currentTab === 'lugares') {
-                renderSection(container, '🍃 Lugares Grátis', database.lugares.filter(i => i.subType === 'Grátis'));
-                renderSection(container, '💰 Lugares Pagos', database.lugares.filter(i => i.subType === 'Pago'));
+                renderSection(container, '🍃 Ideias Gratuitas', (database.lugares || []).filter(i => i.subType === 'Grátis'));
+                renderSection(container, '💰 Ideias Pagas', (database.lugares || []).filter(i => i.subType === 'Pago'));
             } else {
-                renderSection(container, '🎬 Lista de Filmes', database.filmes);
+                renderSection(container, '🎬 Lista de Filmes', database.filmes || []);
             }
         }
 
         function renderSection(container, title, items) {
             if (items.length === 0) return;
-            container.innerHTML += `<h3 class="section-title">${title}</h3>`;
+            container.innerHTML += `<div class="section-title">${title}</div>`;
             items.forEach(item => {
                 const div = document.createElement('div');
                 div.className = `list-item ${item.done ? 'done' : ''}`;
                 div.innerHTML = `
-                    <div class="item-header">
-                        <div style="flex:1; padding-right: 10px;">
-                            <strong style="font-size: 1.05rem;">${item.done ? '✅ ' : ''}${item.name}</strong>
-                            ${item.done ? `
-                                <div class="review-box">
-                                    <span class="rating">${item.rating}</span>
-                                    ${item.note}
-                                </div>` : ''}
-                        </div>
-                        <div class="controls">
-                            ${!item.done ? `<button class="btn-action" onclick="openReview(${item.id})">✔️</button>` : ''}
-                            <button class="btn-action" onclick="deleteItem(${item.id})">🗑️</button>
-                        </div>
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        ${item.done ? `<div class="review-text">${item.rating} <br> ${item.note}</div>` : ''}
+                    </div>
+                    <div class="item-actions">
+                        ${!item.done ? `<button class="btn-circle btn-check" onclick="openReview(${item.id})">✔</button>` : ''}
+                        <button class="btn-circle btn-del" onclick="deleteItem(${item.id})">✖</button>
                     </div>
                 `;
                 container.appendChild(div);
@@ -254,56 +254,42 @@
         }
 
         function drawItem(filter) {
-            let list = database[currentTab].filter(i => !i.done);
-            if (currentTab === 'lugares' && filter !== 'todos') {
-                list = list.filter(i => i.subType === filter);
-            }
-
+            let list = (database[currentTab] || []).filter(i => !i.done);
+            if (currentTab === 'lugares' && filter !== 'todos') list = list.filter(i => i.subType === filter);
             const display = document.getElementById('result-display');
-            if (list.length === 0) {
-                display.innerText = "Nenhuma opção nova disponível!";
-                return;
-            }
-
-            display.innerText = "Sorteando...";
+            
+            if (list.length === 0) { display.innerText = "Adicione mais opções!"; return; }
+            
+            display.innerHTML = "Sorteando...";
             setTimeout(() => {
                 const chosen = list[Math.floor(Math.random() * list.length)];
-                display.innerHTML = `✨ Que tal: <br> <strong style="font-size: 1.3rem; color: #d00000; margin-top:5px; display:block;">${chosen.name}</strong>`;
+                display.innerHTML = `✨ Sugestão: <br> <strong style="color:#d00000; font-size: 1.3rem;">${chosen.name}</strong>`;
             }, 600);
         }
 
-        function openReview(id) {
-            itemBeingReviewed = id;
-            document.getElementById('modal-overlay').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').style.display = 'none';
-            itemBeingReviewed = null;
-        }
-
+        function openReview(id) { itemBeingReviewed = id; document.getElementById('modal-overlay').style.display = 'block'; }
+        function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+        
         function saveReview() {
             const item = database[currentTab].find(i => i.id === itemBeingReviewed);
-            item.done = true;
-            item.rating = document.getElementById('review-rating').value;
-            item.note = document.getElementById('review-text').value;
-            closeModal();
-            save();
-            renderList();
-        }
-
-        function deleteItem(id) {
-            if(confirm("Deseja remover este item da lista?")) {
-                database[currentTab] = database[currentTab].filter(i => i.id !== id);
-                save();
-                renderList();
+            if (item) {
+                item.done = true;
+                item.rating = document.getElementById('review-rating').value;
+                item.note = document.getElementById('review-text').value;
+                db.ref('caixinha').set(database);
+                closeModal();
             }
         }
 
-        function save() { localStorage.setItem('nossaCaixinhaV3', JSON.stringify(database)); }
+        function deleteItem(id) {
+            if(confirm("Remover da lista?")) {
+                database[currentTab] = database[currentTab].filter(i => i.id !== id);
+                db.ref('caixinha').set(database);
+            }
+        }
 
+        listenToData();
         updateDrawButtons();
-        renderList();
     </script>
 </body>
 </html>
